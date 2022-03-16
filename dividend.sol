@@ -27,7 +27,6 @@ contract dividend {
 
     uint public index;
     address public admin;
-    uint public quit;
 
     mapping(address => User) public stackers;
     mapping(uint => uint) public stackedByIndex;
@@ -48,8 +47,7 @@ contract dividend {
         dividendByIndex[index] += amount;
         uint tmp = stackedByIndex[index];
         index += 1;
-        stackedByIndex[index] += tmp; //- quit;
-        quit = 0;
+        stackedByIndex[index] += tmp;
     }
 
     function getReward() public {
@@ -75,8 +73,8 @@ contract dividend {
 
     function stack(uint amount) external payable{
         require(amount > 0, 'You have to stack more than 0.');
-        uint256 allowance = token.allowance(msg.sender, address(this));
-        require(token.balanceOf(msg.sender) > amount, 'amount > balance.');
+        //uint256 allowance = token.allowance(msg.sender, address(this));
+        //require(token.balanceOf(msg.sender) > amount, 'amount > balance.');
 
         User storage user = stackers[msg.sender];
         if(user.amount == 0)    user.cursor = index;
@@ -97,11 +95,6 @@ contract dividend {
 
         if(user.cursor != index){
             getReward();
-            //quit += amount;
-        }
-        else{
-            //stackedByIndex[index] -= amount;
-            //quit += amount;
         }
         stackedByIndex[index] -= amount;
         user.amount -= amount;
