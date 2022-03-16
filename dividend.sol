@@ -37,18 +37,18 @@ contract dividend {
     
     constructor() {
         admin = msg.sender;
-        token = IERC20(0xeD1dC4D119c3Bd916970fB81F3095A2F55262204);
+        //token = IERC20(0xeD1dC4D119c3Bd916970fB81F3095A2F55262204);
     }
 
     function addLiquidity() external payable{
         uint amount = msg.value;
         require(amount > 0, 'usage : dividend > 0.');
-        require(msg.sender == admin, 'Only admin.');
+        require(msg.sender == admin, 'Admin only.');
         
         dividendByIndex[index] += amount;
         uint tmp = stackedByIndex[index];
         index += 1;
-        stackedByIndex[index] += tmp - quit;
+        stackedByIndex[index] += tmp; //- quit;
         quit = 0;
     }
 
@@ -97,11 +97,13 @@ contract dividend {
 
         if(user.cursor != index){
             getReward();
-            quit += amount;
+            //quit += amount;
         }
         else{
-            stackedByIndex[index] -= amount;
+            //stackedByIndex[index] -= amount;
+            //quit += amount;
         }
+        stackedByIndex[index] -= amount;
         user.amount -= amount;
         user.amountBefore -= amount;
     }
