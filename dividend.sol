@@ -32,11 +32,16 @@ contract dividend {
     mapping(uint => uint) public stackedByIndex;
     mapping(uint => uint) public dividendByIndex;
 
-    IERC20 public token;
+    IERC20 public ObToken;
+
+    event AddLiquidity(address indexed admin, uint tokens);
+    event GetReward(address indexed stacker, uint tokens);
+    event Stack(address indexed stacker, uint256 tokens);
+    event Unstack(address indexed stacker, uint256 tokens);
     
     constructor() {
         admin = msg.sender;
-        //token = IERC20(0xeD1dC4D119c3Bd916970fB81F3095A2F55262204);
+        ObToken = IERC20(0xd9145CCE52D386f254917e481eB44e9943F39138);
     }
 
     function addLiquidity() external payable{
@@ -48,6 +53,8 @@ contract dividend {
         uint tmp = stackedByIndex[index];
         index += 1;
         stackedByIndex[index] += tmp;
+
+        emit AddLiquidity(msg.sender, amount);
     }
 
     function getReward() public {
@@ -69,22 +76,25 @@ contract dividend {
 
         (bool sent, ) = msg.sender.call{value: reward}("");
         require(sent, "Failed to send.");
+
+        emit GetReward(msg.sender, reward);
     }
 
-    function stack(uint amount) external payable{
-        require(amount > 0, 'You have to stack more than 0.');
-        //uint256 allowance = token.allowance(msg.sender, address(this));
-        //require(token.balanceOf(msg.sender) > amount, 'amount > balance.');
+    function stack() external payable{
+        uint256 allowance = ObToken.allowance(msg.sender, address(this));
+        require(allowance > 0, 'You have to allow an amount.');
 
         User storage user = stackers[msg.sender];
         if(user.amount == 0)    user.cursor = index;
-        user.amount += amount;
+        user.amount += allowance;
         user.indexIn.push(index);
-        user.amountIn[index] += amount;
+        user.amountIn[index] += allowance;
 
-        stackedByIndex[index] += amount;
+        stackedByIndex[index] += allowance;
 
-        //verif transfer erc 20
+        require(ObToken.transferFrom(msg.sender, address(this), allowance), 'Failed to send.');
+
+        emit Stack(msg.sender, allowance);
     }
 
     function unstack(uint amount) public {
@@ -92,13 +102,19 @@ contract dividend {
 
         require(amount > 0, 'Your stacking balance should be greater than 0.');
         require(user.amount > 0, 'You are not stacking');
+        require(user.amount >= amount, 'amount > Your current balance.');
 
         if(user.cursor != index){
             getReward();
         }
         stackedByIndex[index] -= amount;
         user.amount -= amount;
-        user.amountBefore -= amount;
+        if(amount > user.amountBefore)  user.amountBefore = 0;
+        else    user.amountBefore -= amount;
+
+        ObToken.transfer(msg.sender, amount);
+
+        emit Unstack(msg.sender, amount);
     }
 
     function unstackAll() external {
